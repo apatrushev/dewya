@@ -1,0 +1,131 @@
+#!/usr/bin/env python
+import os
+import sys
+import socket
+import urllib2
+import json
+import subprocess
+from contextlib import closing
+
+
+def load_config(filepath):
+    with open(CONF_PATH) as conf:
+        return [x.strip() for x in conf]
+
+
+CONF_PATH = os.path.join(
+    os.environ['HOME'],
+    '.dewya'
+)
+DOCKERS = load_config(CONF_PATH)
+FORWARD_PORT = 4243
+
+
+def getch():
+    """Get single character from user.
+    http://code.activestate.com/recipes/134892/
+    """
+
+    import sys
+    import tty
+    import termios
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+    try:
+        tty.setraw(sys.stdin.fileno())
+        ch = sys.stdin.read(1)
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+    return ch
+
+
+def forward_port(docker_uri):
+    """Forward local port to remote unix domain socket."""
+
+    host, port = docker_uri[6:], FORWARD_PORT
+
+    # execute unix=>tcp port forwarding on server
+    socat_cmd = 'ssh -f {} "socat {} {}" &>/dev/null'.format(
+        host,
+        'TCP4-LISTEN\:{},fork,reuseaddr'.format(port),
+        'UNIX-CONNECT\:/var/run/docker.sock',
+    )
+    subprocess.call(socat_cmd, shell=True)
+
+    # kill previous instance (fight with dangling connections)
+    kill_cmd = "kill `pgrep -f 'ssh -fN -L{port}.*{host}'` &>/dev/null".format(
+        port=port,
+        host=host
+    ),
+    subprocess.call(kill_cmd, shell=True)
+
+    # execute port forwarding in background
+    forward_cmd = 'ssh -fN -L4243:127.0.0.1:{port} {host} &>/dev/null'.format(
+        port=port,
+        host=host
+    ),
+    subprocess.call(forward_cmd, shell=True)
+
+    return 'tcp://localhost:{}'.format(port)
+
+
+def main():
+    for k, v in enumerate(DOCKERS):
+        print '{}. {}'.format(k, v)
+
+    # read the id of awaited docker from user
+    num = None
+    while True:
+        num = ord(getch())
+        if num in [3, 4]:
+            return -1
+        elif num > 47 and num < (48 + len(DOCKERS)):
+            num -= 48
+            break
+        print 'Please press {}'.format(
+            ','.join(map(str, xrange(len(DOCKERS))))
+        )
+
+    docker_uri = DOCKERS[num]
+    os.environ['DOCKER_PS1'] = docker_uri
+
+    # forward port for "remote" docker
+    if docker_uri.startswith('ssh:'):
+        docker_uri = forward_port(docker_uri)
+
+    # check docker availability and fetch version
+    url = 'http://{}/version'.format(docker_uri[6:])
+    version = None
+    try:
+        with closing(urllib2.urlopen(url, timeout=5)) as r:
+            version = json.loads(r.read())['Version']
+    except (socket.timeout, urllib2.URLError):
+        print >>sys.stderr, 'docker connection failed'
+        return -2
+
+    # set path to real docker bin
+    client_path = '/usr/local/Cellar/docker/{}/bin'.format(version)
+    os.environ['PATH'] = '{}:{}'.format(client_path, os.environ['PATH'])
+
+    # configure env for docker client
+    os.environ['DOCKER_HOST'] = docker_uri
+
+    # ... and some nifty addon for shell prompt
+    ps1_docker = '\[\e[1;34m\]$DOCKER_PS1\[\e[00m\]|'
+    os.environ['PS1'] = ps1_docker + os.environ['PS1']
+
+    # re-create requested command and run it
+    docker_bin = '{}/docker'.format(client_path)
+    args = [docker_bin]
+    args.extend(sys.argv[1:])
+    subprocess.call(args)
+
+    # ... and start subshell
+    shell = os.environ['SHELL']
+    os.execl(shell, shell)
+
+
+if __name__ == '__main__':
+    if not len(DOCKERS):
+        print >>sys.stderr, 'Enumerate your dockers in ~/.dewya'
+    sys.exit(main())
