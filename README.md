@@ -1,8 +1,8 @@
 # dewya
 Docker Env Wrapper (Yet Another)
 
-This is wrapper for docker client. It provides the ability to select
-the one of your dockers from preconfigured list placed in ~/.dewya configuration file.
+This is wrapper for docker client. With this wrapper you can select
+one of your dockers from preconfigured list placed in ~/.dewya configuration file.
 
 Example config:
 ```
@@ -19,3 +19,6 @@ which is based on MacOS X with homebrew-installed docker clients.
 
 Wrapper needs only python (tested with 2.7.10 and 3.5.0), config
 file and homebrew-installed docker clients.
+
+Just create configuration file, place this wrapper at some
+directory in front of your PATH (~/bin for example) and have fun.
