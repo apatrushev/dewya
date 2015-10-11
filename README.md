@@ -5,7 +5,7 @@ This is wrapper for docker client. With this wrapper you can select
 one of your dockers from preconfigured list placed in ~/.dewya configuration file.
 
 Example config:
-```
+```ini
 [dockers]
 localhost=tcp://127.0.0.1:2375
 google-cloud=ssh://some-host:2375
