@@ -8,7 +8,7 @@ Example config:
 ```ini
 [dockers]
 localhost=tcp://127.0.0.1:2375
-google-cloud=ssh://some-host:2375
+google-cloud=ssh://some-host
 company-network=tcp://some-other-host:2375
 ```
 
