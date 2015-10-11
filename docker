@@ -83,6 +83,10 @@ def forward_port(docker_uri):
 
 
 def main():
+    if not sys.stdout.isatty() or not sys.stdin.isatty():
+        print('dewya cannot be used in pipes', file=sys.stderr)
+        return -3
+
     # if connection already configured in environment
     if 'DOCKER_HOST' in os.environ:
         docker_uri = os.environ['DOCKER_HOST']
