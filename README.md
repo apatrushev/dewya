@@ -6,9 +6,10 @@ one of your dockers from preconfigured list placed in ~/.dewya configuration fil
 
 Example config:
 ```
-tcp://127.0.0.1:2375
-ssh://some-host:2375
-tcp://some-other-host:2375
+[dockers]
+localhost=tcp://127.0.0.1:2375
+google-cloud=ssh://some-host:2375
+company-network=tcp://some-other-host:2375
 ```
 
 It's really helpful if you have a bunch (not too big, actually) of

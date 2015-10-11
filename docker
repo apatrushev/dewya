@@ -13,10 +13,17 @@ except:
     from urllib.request import urlopen
     from urllib.error import URLError
 
+try:
+    from ConfigParser import ConfigParser
+except:
+    from configparser import ConfigParser
+
 
 def load_config(filepath):
+    cfg = ConfigParser()
     with open(CONF_PATH) as conf:
-        return [x.strip() for x in conf]
+        cfg.readfp(conf)
+        return [(s[0].strip(), s[1].strip()) for s in cfg.items('dockers')]
 
 
 CONF_PATH = os.path.join(
@@ -76,12 +83,13 @@ def forward_port(docker_uri):
 
 
 def main():
+    # if connection already configured in environment
     if 'DOCKER_HOST' in os.environ:
         docker_uri = os.environ['DOCKER_HOST']
         os.environ['DOCKER_PS1'] = docker_uri
     else:
-        for k, v in enumerate(DOCKERS):
-            print('{}. {}'.format(k, v))
+        for num, (name, addr) in enumerate(DOCKERS):
+            print('{}. {} ({})'.format(num, name, addr))
 
         # read the id of awaited docker from user
         num = None
@@ -99,7 +107,7 @@ def main():
                 )
             )
 
-        docker_uri = DOCKERS[num]
+        docker_uri = DOCKERS[num][1]
         os.environ['DOCKER_PS1'] = docker_uri
 
     # forward port for "remote" docker
@@ -140,5 +148,5 @@ def main():
 
 if __name__ == '__main__':
     if not len(DOCKERS):
-        print('Enumerate your dockers in ~/.dewya', file=sys.stderr)
+        print('Please create config file ~/.dewya', file=sys.stderr)
     sys.exit(main())
