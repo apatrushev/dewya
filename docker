@@ -108,7 +108,7 @@ def main():
             )
 
         docker_uri = DOCKERS[num][1]
-        os.environ['DOCKER_PS1'] = docker_uri
+        os.environ['DOCKER_PS1'] = DOCKERS[num][0]
 
     # forward port for "remote" docker
     if docker_uri.startswith('ssh:'):
